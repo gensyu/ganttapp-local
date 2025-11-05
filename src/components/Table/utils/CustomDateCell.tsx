@@ -22,6 +22,10 @@ export class CustomDateCellTemplate implements CellTemplate<CustomDateCell> {
     this.showYear = showYear;
     this.dateFormat = dateFormat;
   }
+
+  private isImeKey(keyCode: number, key?: string): boolean {
+    return keyCode === 229 || key === 'Process' || key === 'Unidentified';
+  }
   getCompatibleCell(uncertainCell: Uncertain<CustomDateCell>): Compatible<CustomDateCell> {
     const rawText = uncertainCell.text || '';
     const normalizedText = standardizeLongDateFormatText(rawText, this.dateFormat) || '';
@@ -45,6 +49,10 @@ export class CustomDateCellTemplate implements CellTemplate<CustomDateCell> {
     // 修飾キーが押されている場合は編集モードに入らない（ショートカットキーのため）
     if (ctrl || alt) {
       return { cell, enableEditMode: false };
+    }
+    // IME入力開始を検知して編集モードに入る
+    if (this.isImeKey(keyCode, key)) {
+      return { cell, enableEditMode: true };
     }
     // 数字やスラッシュなどのキー入力で編集モードを開始（日付入力用）
     if (key && ((keyCode >= 48 && keyCode <= 57) || key === '/' || key === '-')) {

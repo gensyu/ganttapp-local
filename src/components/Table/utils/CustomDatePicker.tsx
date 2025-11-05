@@ -32,6 +32,7 @@ const CustomDatePicker = memo(({ cell, onCellChanged }: CustomDatePickerProps) =
   const containerRef = useRef<HTMLDivElement>(null);
   const wasEscKeyPressedRef = useRef(false);
   const initialTextRef = useRef<string>(cell.text || '');
+  const isComposingRef = useRef(false);
   const [isFocused, setIsFocused] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
 
@@ -68,6 +69,10 @@ const CustomDatePicker = memo(({ cell, onCellChanged }: CustomDatePickerProps) =
 
   // テキストフィールドの確定処理（BlurまたはEnter）
   const handleCommit = useCallback(() => {
+    // composition中はcommitを遅延
+    if (isComposingRef.current) {
+      return;
+    }
     if (wasEscKeyPressedRef.current) {
       wasEscKeyPressedRef.current = false;
       // Escキーが押された場合は元の値に戻す
@@ -100,6 +105,13 @@ const CustomDatePicker = memo(({ cell, onCellChanged }: CustomDatePickerProps) =
 
   // テキストフィールドのキー押下処理
   const handleTextFieldKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    // composition中の Enter/Escape/Tab はセル移動・確定を抑止
+    const composing = (event.nativeEvent as any)?.isComposing || isComposingRef.current || event.key === 'Process' || event.keyCode === 229;
+    if (composing && (event.key === 'Tab' || event.keyCode === keyCodes.ENTER || event.keyCode === keyCodes.ESCAPE)) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     // Tabはグリッドに委ねる（移動のため）
     if (event.key === 'Tab') {
       handleCommit();
@@ -135,6 +147,8 @@ const CustomDatePicker = memo(({ cell, onCellChanged }: CustomDatePickerProps) =
           onChange={handleTextFieldChange}
           onBlur={handleCommit}
           onFocus={() => setIsFocused(true)}
+          onCompositionStart={() => { isComposingRef.current = true; }}
+          onCompositionEnd={() => { isComposingRef.current = false; }}
           onKeyDown={handleTextFieldKeyDown}
           onCopy={e => e.stopPropagation()}
           onCut={e => e.stopPropagation()}
