@@ -21,15 +21,20 @@ export class CustomNumberCellTemplate implements CellTemplate<CustomNumberCell> 
   handleKeyDown(
     cell: Compatible<CustomNumberCell>,
     keyCode: number,
-    _ctrl: boolean,
-    _shift: boolean,
-    _alt: boolean,
+    ctrl: boolean,
+    shift: boolean,
+    alt: boolean,
     key?: string
   ): { cell: Compatible<CustomNumberCell>; enableEditMode: boolean } {
     if (keyCode === keyCodes.POINTER || keyCode === keyCodes.F2) {
       return { cell, enableEditMode: true };
     }
-    if (key && inNumericKey(keyCode)) {
+    // 修飾キーが押されている場合は編集モードに入らない（ショートカットキーのため）
+    if (ctrl || alt) {
+      return { cell, enableEditMode: false };
+    }
+    // アルファベットや数字のキー入力で編集モードを開始
+    if (key && (isAlphaNumericKey(keyCode) || inNumericKey(keyCode))) {
       return { cell: { ...cell, text: key }, enableEditMode: true };
     }
     return { cell, enableEditMode: false };

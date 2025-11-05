@@ -23,22 +23,33 @@ export class CustomDateCellTemplate implements CellTemplate<CustomDateCell> {
     this.dateFormat = dateFormat;
   }
   getCompatibleCell(uncertainCell: Uncertain<CustomDateCell>): Compatible<CustomDateCell> {
-    let text = uncertainCell.text || '';
-    let longDate = ''
-    let shortDate = ''
-    text = standardizeLongDateFormatText(text, this.dateFormat) || '';
-    longDate = standardizeLongDateFormat(text, this.dateFormat) || '';
-    shortDate = standardizeShortDateFormat(text, this.dateFormat) || '';
+    const rawText = uncertainCell.text || '';
+    const normalizedText = standardizeLongDateFormatText(rawText, this.dateFormat) || '';
+    const longDate = standardizeLongDateFormat(normalizedText, this.dateFormat) || '';
+    const shortDate = standardizeShortDateFormat(normalizedText, this.dateFormat) || '';
     const value = NaN;
-    return { ...uncertainCell, text, longDate, shortDate, value };
+    return { ...uncertainCell, text: rawText, longDate, shortDate, value };
   }
 
   handleKeyDown(
     cell: Compatible<CustomDateCell>,
-    keyCode: number
+    keyCode: number,
+    ctrl?: boolean,
+    shift?: boolean,
+    alt?: boolean,
+    key?: string
   ): { cell: Compatible<CustomDateCell>; enableEditMode: boolean } {
     if (keyCode === keyCodes.F2 || keyCode === keyCodes.POINTER) {
       return { cell, enableEditMode: true };
+    }
+    // 修飾キーが押されている場合は編集モードに入らない（ショートカットキーのため）
+    if (ctrl || alt) {
+      return { cell, enableEditMode: false };
+    }
+    // 数字やスラッシュなどのキー入力で編集モードを開始（日付入力用）
+    if (key && ((keyCode >= 48 && keyCode <= 57) || key === '/' || key === '-')) {
+      // 最初のキーをそのまま初期値にして編集モードへ
+      return { cell: { ...cell, text: key }, enableEditMode: true };
     }
     return { cell, enableEditMode: false };
   }

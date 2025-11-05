@@ -304,6 +304,17 @@ export const useContextMenuOptions = ({
                 path: String(pathCounter++)
             },
             {
+                children: t("Delete Row"),
+                onClick: () => {
+                    if (entry) {
+                        dispatch(deleteRows([entry.id]));
+                    } else if (selectedRowIds) {
+                        dispatch(deleteRows(selectedRowIds));
+                    }
+                },
+                path: String(pathCounter++)
+            },
+            {
                 children: t("Insert Copied Row"),
                 onClick: () => {
                     const insertAtId = entry?.id || selectedRowIds?.[0] || "";

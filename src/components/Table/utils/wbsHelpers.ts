@@ -40,8 +40,9 @@ const dateCache = {
 };
 
 export function standardizeShortDateFormat(dateStr: string, dateFormat: DateFormatType) {
-  if (dateCache.shortFormat.has(dateStr)) {
-    return dateCache.shortFormat.get(dateStr);
+  const cacheKey = `${dateFormat}|${dateStr}`;
+  if (dateCache.shortFormat.has(cacheKey)) {
+    return dateCache.shortFormat.get(cacheKey);
   }
   const formatMap = {
     'yyyy/MM/dd': 'MM/dd',
@@ -55,51 +56,120 @@ export function standardizeShortDateFormat(dateStr: string, dateFormat: DateForm
   const targetFormat = formatMap[dateFormat];
   let result = dateStr;
 
-  const parsedDate = parse(dateStr, 'yyyy/MM/dd', new Date());
-  if (!isNaN(parsedDate.getTime())) {
-    result = format(parsedDate, targetFormat);
+  // まず標準化された形式（yyyy/M/d）にパースしてから、短い形式にフォーマット
+  const standardized = standardizeLongDateFormatText(dateStr, dateFormat);
+  if (standardized) {
+    try {
+      const parsedDate = parse(standardized, 'yyyy/M/d', new Date());
+      if (!isNaN(parsedDate.getTime())) {
+        result = format(parsedDate, targetFormat);
+      } else {
+        result = '';
+      }
+    } catch (e) {
+      result = '';
+    }
+  } else {
+    result = '';
   }
 
-  dateCache.shortFormat.set(`${dateFormat}${dateStr}`, result);
+  dateCache.shortFormat.set(cacheKey, result);
   return result;
 }
 
 export function standardizeLongDateFormatText(dateStr: string, dateFormat: DateFormatType) {
-  if (dateCache.text.has(dateStr)) {
-    return dateCache.text.get(dateStr);
+  const cacheKey = `${dateFormat}|${dateStr}`;
+  if (dateCache.text.has(cacheKey)) {
+    return dateCache.text.get(cacheKey);
   }
 
-  const formatMap = {
-    'yyyy/MM/dd': ['yyyy/MM/dd', 'yyyy-MM-dd'],
-    'MM/dd/yyyy': ['MM/dd/yyyy', 'MM-dd-yyyy'],
-    'dd/MM/yyyy': ['dd/MM/yyyy', 'dd-MM-yyyy'],
-    'yyyy/M/d': ['yyyy/M/d', 'yyyy-M-d'],
-    'M/d/yyyy': ['M/d/yyyy', 'M-d-yyyy'],
-    'd/M/yyyy': ['d/M/yyyy', 'd-M-yyyy']
+  const formatMap: { [key in DateFormatType]: string[] } = {
+    'yyyy/MM/dd': ['yyyy/MM/dd', 'yyyy-MM-dd', 'yyyy/M/d', 'yyyy-M-d', 'MM/dd', 'M/d', 'MM-dd', 'M-d'],
+    'MM/dd/yyyy': ['MM/dd/yyyy', 'MM-dd-yyyy', 'M/d/yyyy', 'M-d-yyyy', 'MM/dd', 'M/d', 'MM-dd', 'M-d'],
+    'dd/MM/yyyy': ['dd/MM/yyyy', 'dd-MM-yyyy', 'd/M/yyyy', 'd-M-yyyy', 'dd/MM', 'd/M', 'dd-MM', 'd-M'],
+    'yyyy/M/d': ['yyyy/M/d', 'yyyy-M-d', 'M/d', 'M-d'],
+    'M/d/yyyy': ['M/d/yyyy', 'M-d-yyyy', 'M/d', 'M-d'],
+    'd/M/yyyy': ['d/M/yyyy', 'd-M-yyyy', 'd/M', 'd-M']
   };
   const targetFormats = formatMap[dateFormat] || [];
   let result = dateStr;
 
-  for (const fmt of targetFormats) {
+  const referenceDate = new Date();
+
+  // 年のない入力（例: 11/11, 1-2）を現在年で補完
+  const trimmed = dateStr.trim();
+  const mdOnly = trimmed.match(/^(\d{1,2})[\/-](\d{1,2})$/);
+  if (mdOnly) {
+    const part1 = parseInt(mdOnly[1], 10);
+    const part2 = parseInt(mdOnly[2], 10);
+    // 現在の表示設定から、月/日か日/月かを判定（英米系は月/日、EU系は日/月）
+    const isMonthFirst = !(dateFormat === 'dd/MM/yyyy' || dateFormat === 'd/M/yyyy');
+    const month = isMonthFirst ? part1 : part2;
+    const day = isMonthFirst ? part2 : part1;
+    const year = referenceDate.getFullYear();
+    // 可変桁で組み立て（内部は yyyy/M/d で統一）
+    const ymd = `${year}/${month}/${day}`;
     try {
-      const parsedDate = parse(dateStr, fmt, new Date());
-      if (!isNaN(parsedDate.getTime())) {
-        result = format(parsedDate, 'yyyy/M/d');
-        break;
+      const parsedMd = parse(ymd, 'yyyy/M/d', referenceDate);
+      if (!isNaN(parsedMd.getTime())) {
+         result = format(parsedMd, 'yyyy/M/d');
+         dateCache.text.set(cacheKey, result);
+         return result;
       }
     } catch (e) {
-      result = '';
+      // 何もしない（後続の通常処理に委ねる）
+    }
+  }
+
+  for (const fmt of targetFormats) {
+    try {
+      // 年がないフォーマットの場合は、現在の年を補完
+      const parsedDate = parse(dateStr, fmt, referenceDate);
+      if (!isNaN(parsedDate.getTime())) {
+        // パースされた日付が有効な範囲内かチェック（1970-2099）
+        const year = parsedDate.getFullYear();
+        if (year >= 1970 && year <= 2099) {
+          result = format(parsedDate, 'yyyy/M/d');
+          break;
+        }
+      }
+    } catch (e) {
       continue;
     }
   }
 
-  dateCache.text.set(`${dateFormat}${dateStr}`, result);
+  // パースに失敗した場合は空文字を返す
+  if (result === dateStr && dateStr.trim() !== '') {
+    // 再度試行（空文字の場合はそのまま返す）
+    let parsed = false;
+    for (const fmt of targetFormats) {
+      try {
+        const parsedDate = parse(dateStr, fmt, referenceDate);
+        if (!isNaN(parsedDate.getTime())) {
+          const year = parsedDate.getFullYear();
+          if (year >= 1970 && year <= 2099) {
+            result = format(parsedDate, 'yyyy/M/d');
+            parsed = true;
+            break;
+          }
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    if (!parsed) {
+      result = '';
+    }
+  }
+
+  dateCache.text.set(cacheKey, result);
   return result;
 }
 
 export function standardizeLongDateFormat(dateStr: string, dateFormat: DateFormatType) {
-  if (dateCache.longFormat.has(dateStr)) {
-    return dateCache.longFormat.get(dateStr);
+  const cacheKey = `${dateFormat}|${dateStr}`;
+  if (dateCache.longFormat.has(cacheKey)) {
+    return dateCache.longFormat.get(cacheKey);
   }
   const formatMap = {
     'yyyy/MM/dd': 'yyyy/MM/dd',
@@ -112,11 +182,23 @@ export function standardizeLongDateFormat(dateStr: string, dateFormat: DateForma
   const targetFormat = formatMap[dateFormat];
   let result = dateStr;
 
-  const parsedDate = parse(dateStr, 'yyyy/MM/dd', new Date());
-  if (!isNaN(parsedDate.getTime())) {
-    result = format(parsedDate, targetFormat);
+  // まず標準化された形式（yyyy/M/d）にパースしてから、長い形式にフォーマット
+  const standardized = standardizeLongDateFormatText(dateStr, dateFormat);
+  if (standardized) {
+    try {
+      const parsedDate = parse(standardized, 'yyyy/M/d', new Date());
+      if (!isNaN(parsedDate.getTime())) {
+        result = format(parsedDate, targetFormat);
+      } else {
+        result = '';
+      }
+    } catch (e) {
+      result = '';
+    }
+  } else {
+    result = '';
   }
 
-  dateCache.longFormat.set(`${dateFormat}${dateStr}`, result);
+  dateCache.longFormat.set(cacheKey, result);
   return result;
 }
