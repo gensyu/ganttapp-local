@@ -175,5 +175,5 @@ const historySlice = createSlice({
   },
 });
 
-export const { addSnapshot, setCurrentSnapshot, clearHistory, importHistory, startViewingPast, returnToPresent, updateTempModalState, deleteSnapshot } = historySlice.actions;
+export const { addSnapshot, clearHistory, importHistory, startViewingPast, returnToPresent, updateTempModalState, deleteSnapshot } = historySlice.actions;
 export default historySlice.reducer;

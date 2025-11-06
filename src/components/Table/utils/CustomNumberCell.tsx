@@ -27,7 +27,7 @@ export class CustomNumberCellTemplate implements CellTemplate<CustomNumberCell> 
     cell: Compatible<CustomNumberCell>,
     keyCode: number,
     ctrl: boolean,
-    shift: boolean,
+    _shift: boolean,
     alt: boolean,
     key?: string
   ): { cell: Compatible<CustomNumberCell>; enableEditMode: boolean } {

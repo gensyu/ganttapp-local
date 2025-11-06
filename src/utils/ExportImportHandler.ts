@@ -12,7 +12,6 @@ import { importHistory, clearHistory } from "../reduxStoreAndSlices/historySlice
 import i18n from "i18next";
 
 export const handleExport = async (
-  fileId: string,
   colors: { [id: number]: ColorInfo },
   dateRange: { startDate: string, endDate: string },
   columns: ExtendedColumn[],
@@ -36,7 +35,7 @@ export const handleExport = async (
   editorStates?: { [key: string]: any },
   selectedNodeKey?: string,
   historySnapshots?: any[],
-) => {
+): Promise<Uint8Array> => {
   const settingsData = {
     colors,
     dateRange,
@@ -62,29 +61,38 @@ export const handleExport = async (
     ...(selectedNodeKey && { selectedNodeKey }),
     ...(historySnapshots && { historySnapshots }),
   };
-  const zip = new JSZip();
+  // JSON文字列をUTF-8エンコードしてUint8Arrayとして返す
   const jsonData = JSON.stringify(settingsData, null, 2);
-  zip.file(`${fileId}.json`, jsonData, { compression: 'DEFLATE', compressionOptions: { level: 9 } });
-  const zipBlob = await zip.generateAsync({ type: 'blob' });
-  return zipBlob;
+  return new TextEncoder().encode(jsonData);
 };
 
-export const handleImport = createAsyncThunk<void, { file: Blob; skipHistoryImport?: boolean }, { state: RootState, dispatch: AppDispatch }>(
+export const handleImport = createAsyncThunk<void, { file: Blob | Uint8Array; skipHistoryImport?: boolean }, { state: RootState, dispatch: AppDispatch }>(
   'project/import',
   async ({ file, skipHistoryImport = false }, { dispatch }) => {
     if (!file) throw new Error("File is not provided");
     
     let parsedData: any;
     
-    // Check if the file is a JSON file directly
-    if (file.type === 'application/json') {
-      const jsonData = await file.text();
+    // Handle Uint8Array (from Tauri) or Blob (legacy)
+    let arrayBuffer: ArrayBuffer;
+    if (file instanceof Uint8Array) {
+      // Uint8Array#buffer may be typed as ArrayBufferLike. Ensure ArrayBuffer by copying.
+      arrayBuffer = new Uint8Array(file).buffer;
+    } else {
+      arrayBuffer = await file.arrayBuffer();
+    }
+    
+    // Check if the file is a JSON file directly (first few bytes check)
+    const uint8View = new Uint8Array(arrayBuffer);
+    const isJson = uint8View[0] === 0x7B; // '{' character
+    
+    if (isJson) {
+      const jsonData = new TextDecoder().decode(arrayBuffer);
       parsedData = JSON.parse(jsonData);
     } else {
       // Handle as ZIP file
       const zip = new JSZip();
-      const zipContent = await file.arrayBuffer();
-      const loadedZip = await zip.loadAsync(zipContent);
+      const loadedZip = await zip.loadAsync(arrayBuffer);
       const jsonFileEntry = Object.values(loadedZip.files).find(file => file.name.endsWith('.json'));
       if (!jsonFileEntry) throw new Error("No JSON file found in ZIP");
       const jsonData = await jsonFileEntry.async("string");

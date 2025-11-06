@@ -161,11 +161,4 @@ export function isCompressedData(data: any): data is CompressedData {
 /**
  * 旧形式（文字列）から新形式（CompressedData）への変換
  */
-export function migrateToCompressedFormat(oldData: string): CompressedData {
-  return {
-    compressed: oldData,
-    originalSize: new Blob([oldData]).size,
-    compressedSize: new Blob([oldData]).size,
-    version: 'uncompressed'
-  };
-}
+// Removed unused migrateToCompressedFormat helper; if needed, reintroduce with proper unit tests.

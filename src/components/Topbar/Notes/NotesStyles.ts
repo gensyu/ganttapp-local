@@ -18,20 +18,6 @@ export const StyledTreeContainer = styled.div`
   }
 `;
 
-export const StyledTextAreaContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  overflow: hidden;
-  margin-left: 10px;
-  .ql-tooltip {
-    z-index: 999;
-  }
-  .ql-editor {
-    padding: 4px;
-    font-size: 14px;
-  }
-`;
 
 interface StyledResizeBarProps {
   $left: number;

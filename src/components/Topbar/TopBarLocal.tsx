@@ -1,26 +1,15 @@
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import React from 'react';
-import Button from '@mui/material/Button';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import TextField from '@mui/material/TextField';
 import { useDispatch, useSelector } from 'react-redux';
 import { setActiveModal, setIsLoading } from '../../reduxStoreAndSlices/uiFlagSlice';
 import { RootState, undo, redo, setMessageInfo, removePastState } from '../../reduxStoreAndSlices/store';
-import { setTitle } from '../../reduxStoreAndSlices/baseSettingsSlice';
-import { handleExport, handleImport } from '../../utils/ExportImportHandler'; // handleImportを追加
 import { useTranslation } from 'react-i18next';
 import TitleSetting from './TitleSetting';
 import TopMenu from './TopMenu';
-import JsonDataModal from './JsonDataModal';
 import styled from 'styled-components';
-import { v4 as uuidv4 } from 'uuid';
 import useWarnIfUnsavedChanges from '../../hooks/useWarnIfUnsavedChanges';
 import useResetIsSavedChangesFlags from '../../hooks/useResetIsSavedChangesFlags';
 import useResetReduxStates from '../../hooks/useResetReduxStates';
-import { useNavigate } from 'react-router-dom';
-import { WelcomeUtils } from '../../utils/WelcomeUtils';
 import { returnToPresentWithRestore } from '../../reduxStoreAndSlices/historyThunks';
 
 const MenuButton = styled.button`
@@ -54,20 +43,17 @@ const ReturnButton = styled.button`
 `;
 
 const TopBarLocal: React.FC = memo(() => {
-  const navigate = useNavigate();
   const { t } = useTranslation();
   const dispatch = useDispatch();
-  const [saveAsDialogOpen, setSaveAsDialogOpen] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
-  const [jsonModalOpen, setJsonModalOpen] = useState(false);
 
   // Redux state
-  const currentRegularDaysOffSetting = useSelector((state: RootState) => state.wbsData.regularDaysOffSetting);
-  const currentColors = useSelector((state: RootState) => state.color.colors);
   const isSavedStore = useSelector((state: RootState) => state.wbsData.isSavedChanges);
   const isSavedColor = useSelector((state: RootState) => state.color.isSavedChanges);
   const isSavedSettings = useSelector((state: RootState) => state.baseSettings.isSavedChanges);
   const isSavedNotes = useSelector((state: RootState) => state.notes.isSavedChanges);
+  // 保存で使用するエクスポート元データ
+  const currentRegularDaysOffSetting = useSelector((state: RootState) => state.wbsData.regularDaysOffSetting);
+  const currentColors = useSelector((state: RootState) => state.color.colors);
   const currentLanguage = useSelector((state: RootState) => state.baseSettings.language);
   const dateRange = useSelector((state: RootState) => state.baseSettings.dateRange);
   const currentHolidayInput = useSelector((state: RootState) => state.baseSettings.holidayInput);
@@ -103,7 +89,6 @@ const TopBarLocal: React.FC = memo(() => {
   const fileButtonRef = useRef<HTMLButtonElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const settingButtonRef = useRef<HTMLButtonElement>(null);
-  const userButtonRef = useRef<HTMLButtonElement>(null);
   const resetIsSavedChangesFlags = useResetIsSavedChangesFlags();
   const resetReduxStates = useResetReduxStates();
 
@@ -112,40 +97,21 @@ const TopBarLocal: React.FC = memo(() => {
   useWarnIfUnsavedChanges(!isSavedSettings)
   useWarnIfUnsavedChanges(!isSavedStore)
 
-  const handleClose = useCallback(() => {
-    dispatch(setActiveModal(null));
-    setSaveAsDialogOpen(false);
-    setNewTitle('');
-  }, [dispatch]);
-
-  const handleJsonModalOpen = useCallback(() => {
-    setJsonModalOpen(true);
-  }, []);
-
-  const handleJsonModalClose = useCallback(() => {
-    setJsonModalOpen(false);
-  }, []);
-
   const handleNewClick = useCallback(async () => {
     await resetReduxStates();
     resetIsSavedChangesFlags();
-    handleClose();
-  }, [handleClose, resetReduxStates, resetIsSavedChangesFlags]);
-
-  const handleSaveAsClick = useCallback(() => {
-    setNewTitle(title);
-    setSaveAsDialogOpen(true);
-  }, [title]);
+    dispatch(setActiveModal(null));
+  }, [dispatch, resetReduxStates, resetIsSavedChangesFlags]);
 
   const handleNotesClick = useCallback(() => {
     dispatch(setActiveModal('notes'));
   }, [dispatch]);
 
-  const handleLocalSave = useCallback(async (newTitle?: string) => {
-    const effectiveTitle = newTitle || title;
+  // 保存 - Tauri保存ダイアログで保存
+  const handleSaveJsonClick = useCallback(async () => {
     try {
-      const zipData = await handleExport(
-        uuidv4(),
+      const effectiveTitle = title;
+      const jsonData = await (await import('../../utils/ExportImportHandler')).handleExport(
         colors,
         dateRange,
         columns,
@@ -170,72 +136,68 @@ const TopBarLocal: React.FC = memo(() => {
         selectedNodeKey,
         historySnapshots,
       );
-
-      const blob = new Blob([zipData], { type: 'application/zip' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${effectiveTitle || 'gantt-chart'}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      resetIsSavedChangesFlags();
-      handleClose();
-      dispatch(setMessageInfo({ message: t('File downloaded successfully.'), severity: 'success' }));
+      const { save } = await import('@tauri-apps/plugin-dialog');
+      const { writeFile } = await import('@tauri-apps/plugin-fs');
+      const filePath = await save({
+        defaultPath: `${effectiveTitle || 'gantt-chart'}.json`,
+        filters: [{ name: 'Project', extensions: ['json'] }]
+      });
+      if (filePath) {
+        // Uint8Arrayをそのまま書き込む（TauriのwriteFileはUint8ArrayまたはReadableStreamを期待）
+        await writeFile(filePath, jsonData);
+        resetIsSavedChangesFlags();
+        dispatch(setMessageInfo({ message: t('File saved successfully.'), severity: 'success' }));
+      }
     } catch (error) {
-      const errorMessage = error instanceof Error
-        ? t('Download failed: ') + error.message
-        : t('Download failed. An unknown error occurred.');
+      console.error('Save failed:', error);
+      // エラーオブジェクトの詳細を取得
+      let errorMessage: string;
+      if (error instanceof Error) {
+        errorMessage = t('Save failed: ') + error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = t('Save failed: ') + error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = t('Save failed: ') + String((error as any).message);
+      } else {
+        errorMessage = t('Save failed. An unknown error occurred.') + (error ? ` (${JSON.stringify(error)})` : '');
+      }
       dispatch(setMessageInfo({ message: errorMessage, severity: 'error' }));
     }
-  }, [colors, dateRange, columns, data, holidayInput, holidayColor, regularDaysOffSetting, wbsWidth, calendarWidth, cellWidth, title, showYear, dateFormat, treeData, noteData, currentLanguage, notesModalState, historySnapshots, resetIsSavedChangesFlags, handleClose, dispatch, t]);
+  }, [dispatch, title, colors, dateRange, columns, data, holidayInput, holidayColor, regularDaysOffSetting, wbsWidth, calendarWidth, cellWidth, showYear, dateFormat, treeData, noteData, currentLanguage, scrollPosition, notesModalState, treeExpandedKeys, treeScrollPosition, editorStates, selectedNodeKey, historySnapshots, resetIsSavedChangesFlags, t]);
 
-  const handleSaveAsSubmit = useCallback(async () => {
-    if (!newTitle) return;
-    dispatch(setTitle(newTitle));
-    handleLocalSave(newTitle);
-  }, [dispatch, handleLocalSave, newTitle]);
-
-  const handleLocalOpen = useCallback(() => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.zip';
-    input.onchange = async (event) => {
-      const file = (event.target as HTMLInputElement).files?.[0];
-      if (file) {
-        try {
-          dispatch(setIsLoading(true));
-          const fileBlob = new Blob([file], { type: file.type });
-          await resetReduxStates();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await dispatch(handleImport({ file: fileBlob }) as any);
-          dispatch(removePastState(1));
-          resetIsSavedChangesFlags();
-          dispatch(setMessageInfo({
-            message: t('Saved data opened successfully.'),
-            severity: 'success'
-          }));
-          if (visibleMenu) {
-            setVisibleMenu(null);
-          }
-        } catch (error) {
-          console.error('Failed to open data.', error);
-          const errorMessage = error instanceof Error
-            ? t('Failed to open data: ') + error.message
-            : t('Failed to open data. An unknown error occurred.');
-          dispatch(setMessageInfo({
-            message: errorMessage,
-            severity: 'error'
-          }));
-        } finally {
-          dispatch(setIsLoading(false));
-        }
+  // Tauriの開くダイアログでJSONを読み込み
+  const handleOpenJsonClick = useCallback(async () => {
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const { readFile } = await import('@tauri-apps/plugin-fs');
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: 'Project', extensions: ['json'] }]
+      });
+      if (!selected || Array.isArray(selected)) {
+        return;
       }
-    };
-    input.click();
-  }, [dispatch, t, resetIsSavedChangesFlags, resetReduxStates, visibleMenu, setVisibleMenu]);
+      dispatch(setIsLoading(true));
+      const fileData = await readFile(selected);
+      await resetReduxStates();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await dispatch((await import('../../utils/ExportImportHandler')).handleImport({ file: fileData }) as any);
+      dispatch(removePastState(1));
+      resetIsSavedChangesFlags();
+      dispatch(setMessageInfo({ message: t('Saved data opened successfully.'), severity: 'success' }));
+      if (visibleMenu) {
+        setVisibleMenu(null);
+      }
+    } catch (error) {
+      console.error('Failed to open data.', error);
+      const errorMessage = error instanceof Error
+        ? t('Failed to open data: ') + error.message
+        : t('Failed to open data. An unknown error occurred.');
+      dispatch(setMessageInfo({ message: errorMessage, severity: 'error' }));
+    } finally {
+      dispatch(setIsLoading(false));
+    }
+  }, [dispatch, t, resetIsSavedChangesFlags, resetReduxStates, visibleMenu]);
 
   const fileMenuOptions = useMemo(() => {
     const options = [
@@ -245,28 +207,18 @@ const TopBarLocal: React.FC = memo(() => {
         path: '0'
       },
       {
-        children: t('Open File'),
-        onClick: handleLocalOpen,
+        children: t('Open'),
+        onClick: handleOpenJsonClick,
         path: '1'
       },
       {
-        children: t('Download'),
-        onClick: () => handleLocalSave(),
+        children: t('Save'),
+        onClick: handleSaveJsonClick,
         path: '2'
-      },
-      {
-        children: t('Download As'),
-        onClick: handleSaveAsClick,
-        path: '3'
-      },
-      {
-        children: t('JSON Data'),
-        onClick: handleJsonModalOpen,
-        path: '4'
       }
     ];
     return options;
-  }, [t, handleNewClick, handleLocalOpen, handleLocalSave, handleSaveAsClick, handleJsonModalOpen]);
+  }, [t, handleNewClick, handleOpenJsonClick, handleSaveJsonClick]);
 
   const editMenuOptions = useMemo(() => {
     const options = [
@@ -311,14 +263,7 @@ const TopBarLocal: React.FC = memo(() => {
     return options;
   }, [dispatch, t]);
 
-  const handleResetWelcome = useCallback(() => {
-    WelcomeUtils.resetWelcomeFlag();
-    dispatch(setActiveModal('welcome'));
-  }, [dispatch]);
-
-  const handleBackToLogin = useCallback(() => {
-    navigate('/');
-  }, [navigate]);
+  // ルーター未使用のため、戻る動作は無効（機能なし）
 
   const handleReturnToPresent = useCallback(() => {
     dispatch(returnToPresentWithRestore() as any);
@@ -328,27 +273,8 @@ const TopBarLocal: React.FC = memo(() => {
     }));
   }, [dispatch]);
 
-  const userMenuOptions = useMemo(() => {
-    const options = [
-      {
-        children: t('Show Welcome Screen'),
-        onClick: handleResetWelcome,
-        path: '0'
-      }
-    ];
-    return options;
-  }, [t, handleResetWelcome, handleBackToLogin]);
+  // ユーザーメニューは現在項目なし（ようこそ画面を表示を削除）
 
-  const [error, setError] = useState('');
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setNewTitle(value);
-    if (value.length > 150) {
-      setError('Title must be 150 characters or less.');
-    } else {
-      setError('');
-    }
-  }, []);
 
   return (
     <div className="Topbar" style={{ display: 'flex', height: '100%', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
@@ -398,47 +324,11 @@ const TopBarLocal: React.FC = memo(() => {
             {t('Return to Latest')}
           </ReturnButton>
         )}
-        <Dialog open={saveAsDialogOpen} onClose={handleClose} maxWidth='lg'>
-          <DialogContent>
-            <TextField
-              autoFocus
-              margin="dense"
-              id="name"
-              type="text"
-              fullWidth
-              variant="outlined"
-              value={newTitle}
-              onChange={handleChange}
-              error={!!error}
-              helperText={error}
-              sx={{ width: '400px' }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleSaveAsSubmit} color="primary">OK</Button>
-            <Button onClick={handleClose}>{t('Cancel')}</Button>
-          </DialogActions>
-        </Dialog>
-        <JsonDataModal
-          open={jsonModalOpen}
-          onClose={handleJsonModalClose}
-        />
       </div>
       <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', height: '100%', display: 'flex', justifyContent: 'center' }}>
         <TitleSetting />
       </div>
-      <div style={{ height: '100%' }}>
-        <MenuButton ref={userButtonRef}>
-          {t('Local Mode')}
-        </MenuButton>
-        <TopMenu
-          menuType='user'
-          targetRef={userButtonRef}
-          items={userMenuOptions}
-          visibleMenu={visibleMenu}
-          setVisibleMenu={setVisibleMenu}
-        />
-      </div>
+      {/* 右側ユーザーメニューは削除 */}
     </div>
   );
 });

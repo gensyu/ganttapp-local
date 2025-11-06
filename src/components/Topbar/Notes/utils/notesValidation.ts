@@ -48,5 +48,3 @@ export const validateModalState = (state: NotesModalState): NotesModalState => {
 export const getMinRequiredWidth = (treeWidth: number): number => {
   return treeWidth === 0 ? QUILL_MIN_WIDTH : treeWidth + QUILL_MIN_WIDTH;
 };
-
-export { QUILL_MIN_WIDTH };

@@ -21,7 +21,7 @@ export const createStateBackup = (state: RootState): string => {
 /**
  * バックアップデータの型定義
  */
-export interface BackupData {
+interface BackupData {
   data: Record<string, any>;
   columns: any[];
   colors: any;

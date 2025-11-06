@@ -1,7 +1,7 @@
 // CustomDateCellTemplate.tsx
 import { useState, useEffect, useRef, memo, useCallback } from "react";
 import { Compatible, Cell } from "@silevis/reactgrid";
-import { isAlphaNumericKey, isNavigationKey, keyCodes } from "@silevis/reactgrid";
+import { isAlphaNumericKey, keyCodes } from "@silevis/reactgrid";
 import dayjs from 'dayjs';
 import Popper from '@mui/material/Popper';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -11,7 +11,7 @@ import { RootState } from "../../../reduxStoreAndSlices/store";
 import { useSelector } from "react-redux";
 import { standardizeLongDateFormatText } from "./wbsHelpers";
 
-export interface CustomDateCell extends Cell {
+interface CustomDateCell extends Cell {
   type: 'customDate';
   text: string;
   longDate: string;

@@ -77,19 +77,6 @@ const fadeAnimation = (fromOpacity: number, toOpacity: number) => css`
   animation: ${createFadeAnimation(fromOpacity, toOpacity)} 0.2s ease-out forwards;
 `;
 
-export const Overlay = styled.div<{ $fadeStatus: 'in' | 'out' }>`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.163);
-  display: flex;
-  z-index: 11;
-  ${props => props.$fadeStatus === 'out' ? fadeAnimation(1, 0) : fadeAnimation(0, 1)}
-  border: none;
-  color: #ebebeb;
-`;
 
 export const ModalContainer = styled.div<{ $fadeStatus: 'in' | 'out' }>`
   will-change: transform;

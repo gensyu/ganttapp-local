@@ -146,9 +146,10 @@ This is an offline-first Gantt chart application built with React 18, TypeScript
 - Dependency resolution happens in `CommonUtils.ts` with holiday/weekend awareness
 
 ### File Operations
-- Projects saved as ZIP files containing `project.json` and `notes.json`
+- Projects saved as single JSON files (UTF-8 encoded, `.json` extension)
 - Import/export handled in `src/utils/ExportImportHandler.ts`
-- Supports both ZIP and JSON formats
+- **Tauri-Only Application**: This application is designed exclusively for Tauri environment. All file operations (Open/Save/Save As) use Tauri's native dialog and file system APIs (`@tauri-apps/plugin-dialog`, `@tauri-apps/plugin-fs`)
+- **Backward Compatibility**: Import supports both JSON and legacy ZIP formats (ZIP files are automatically detected and extracted)
 - **Legacy Data Migration**: Automatic migration of notes data where `treeData` is empty but `noteData` exists
 
 ### Testing
@@ -196,7 +197,8 @@ NotesModal (90 lines)
 
 #### Core Utilities (`src/utils/`)
 - **CommonUtils.ts**: Core business logic for date calculations, dependency resolution, holiday handling, and row operations
-- **ExportImportHandler.ts**: File import/export operations for ZIP and JSON formats
+- **ExportImportHandler.ts**: File import/export operations (exports as JSON, imports JSON and legacy ZIP formats)
+- **isTauri.ts**: Tauri environment detection utility (returns always `true` as the app is Tauri-only)
 - **WelcomeUtils.ts**: Sample project management and first-time user experience
 
 #### Custom Hooks (`src/hooks/`)

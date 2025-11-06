@@ -5,33 +5,45 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/gantty.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gantt Local - Offline Project Management</title>
+  <title>Gantty - Project Management</title>
   <meta name="description" content="A local offline Gantt chart application for project management" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' tauri: asset: blob: data:; img-src 'self' data: blob: asset:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'; connect-src 'self' tauri: http://localhost:5173 ws://localhost:5173">
   
-  <!-- Start Single Page Apps for GitHub Pages -->
-  <script type="text/javascript">
-    // Single Page Apps for GitHub Pages
-    // MIT License
-    // https://github.com/rafgraph/spa-github-pages
-    // This script checks to see if a redirect is present in the query string,
-    // converts it back into the correct url and adds it to the
-    // browser's history using window.history.replaceState(...),
-    // which won't cause the browser to attempt to load the new url.
-    // When the single page app is loaded further down in this file,
-    // the correct url will be waiting in the browser's history for
-    // the single page app to route accordingly.
-    (function(l) {
-      if (l.search[1] === '/' ) {
-        var decoded = l.search.slice(1).split('&').map(function(s) { 
-          return s.replace(/~and~/g, '&')
-        }).join('?');
-        window.history.replaceState(null, null,
-            l.pathname.slice(0, -1) + decoded + l.hash
-        );
+  <!-- Tauri本番向け 早期エラーハンドラ & ブート表示 -->
+  <script>
+    (function(){
+      try {
+        // ブート表示
+        var boot = document.createElement('div');
+        boot.id = 'boot-status';
+        boot.style.cssText = 'position:fixed;top:8px;left:8px;background:rgba(0,0,0,.8);color:#0f0;padding:8px 10px;font:12px monospace;z-index:999999;border-radius:4px;';
+        boot.textContent = '[BOOT] index.html loaded';
+        document.addEventListener('DOMContentLoaded', function(){
+          document.body.appendChild(boot);
+          setTimeout(function(){ if(boot && boot.parentNode){ boot.parentNode.removeChild(boot); } }, 6000);
+        });
+        
+        // 早期エラー/未処理拒否の可視化
+        function showFatal(msg){
+          var box = document.createElement('div');
+          box.style.cssText = 'position:fixed;inset:0;background:#fff;color:#b00020;padding:24px;font-family:sans-serif;overflow:auto;z-index:999998';
+          box.innerHTML = '<h1>起動エラー</h1><pre style="white-space:pre-wrap;font-family:monospace">'+msg+'</pre>';
+          document.body.appendChild(box);
+        }
+        window.addEventListener('error', function(e){
+          showFatal('window.onerror: ' + (e.message || e.error && e.error.stack || 'unknown'));
+        });
+        window.addEventListener('unhandledrejection', function(e){
+          var reason = e && e.reason; 
+          var msg = typeof reason === 'object' && reason && reason.stack ? reason.stack : String(reason);
+          showFatal('unhandledrejection: ' + msg);
+        });
+      } catch(e) {
+        // ここで例外が起きる場合も画面へ
+        document.body.innerHTML = '<div style="padding:24px;font-family:sans-serif;color:#b00020"><h1>初期スクリプトエラー</h1><pre style="white-space:pre-wrap;font-family:monospace">'+(e && e.stack || String(e))+'</pre></div>';
       }
-    }(window.location))
+    })();
   </script>
-  <!-- End Single Page Apps for GitHub Pages -->
 </head>
 
 <body>

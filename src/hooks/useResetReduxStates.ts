@@ -8,21 +8,13 @@ import { resetStore, setColumns, setDateFormat, setHolidays } from '../reduxStor
 import { t } from 'i18next';
 import { initialColumns } from '../reduxStoreAndSlices/initialColumns';
 import { determineDateFormat, getInitialHolidays } from '../utils/CommonUtils';
-import { useNavigate, useLocation } from 'react-router-dom';
 
-interface ResetOptions {
-    skipNavigation?: boolean;
-    isLocalMode?: boolean;
-}
-
-const useResetReduxStates = (): (options?: ResetOptions) => Promise<void> => {
+const useResetReduxStates = (): () => Promise<void> => {
     const dispatch = useDispatch();
-    const navigate = useNavigate();
-    const location = useLocation();
     const dateFormat = determineDateFormat();
 
-    const resetReduxStates = async (options: ResetOptions = {}): Promise<void> => {
-        const { skipNavigation = false, isLocalMode } = options;
+    const resetReduxStates = async (): Promise<void> => {
+        // ルーター未使用
 
         dispatch(resetStore());
         dispatch(resetNotes());
@@ -32,14 +24,7 @@ const useResetReduxStates = (): (options?: ResetOptions) => Promise<void> => {
         dispatch(setCurrentFileId(''));
         dispatch(setDateFormat(dateFormat));
 
-        if (!skipNavigation) {
-            const shouldUseLocalMode = isLocalMode ?? location.pathname.startsWith('/local');
-            if (shouldUseLocalMode) {
-                navigate(`/local`, { replace: true });
-            } else {
-                navigate(`/app`, { replace: true });
-            }
-        }
+        // ルーターを使用しないため、ナビゲーションは行わない
 
         try {
             const { holidayInput, parsedHolidays } = await getInitialHolidays(dateFormat);

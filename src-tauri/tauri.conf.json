@@ -2,30 +2,31 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Gantty",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "gantty.dev",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
     "beforeDevCommand": "pnpm dev",
-    "beforeBuildCommand": "pnpm build"
+    "beforeBuildCommand": "pnpm build:tauri"
   },
   "app": {
     "windows": [
       {
         "title": "Gantty",
-        "width": 800,
-        "height": 600,
+        "width": 1200,
+        "height": 800,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "devtools": true
       }
     ],
     "security": {
-      "csp": null
-    }
+      "csp": "default-src 'self' tauri: asset: blob: data:; img-src 'self' data: blob: asset:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'; connect-src 'self' tauri: http://localhost:5173 ws://localhost:5173"
+    },
+    "withGlobalTauri": false
   },
   "bundle": {
-    "active": true,
-    "targets": "all",
+    "active": false,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

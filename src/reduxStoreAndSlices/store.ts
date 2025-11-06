@@ -22,12 +22,12 @@ export interface ExtendedColumn extends Column {
   visible: boolean;
 }
 
-export interface UndoableState {
+interface UndoableState {
   data: { [id: string]: WBSData },
   columns: ExtendedColumn[],
 }
 
-export interface AddRowPayload {
+interface AddRowPayload {
   rowType: RowType;
   insertAtId: string;
   numberOfRows: number;
@@ -555,8 +555,6 @@ export const wbsDataSlice = createSlice({
 
 export const {
   setEntireData,
-  addRow,
-  insertCopiedRow,
   deleteRows,
   convertDisplayNameOnlyRowsToSeparator,
   setMessageInfo,

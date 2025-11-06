@@ -9,7 +9,7 @@ const initialState: MenuState = {
   openSubMenus: [],
 };
 
-export const subMenuSlice = createSlice({
+const subMenuSlice = createSlice({
   name: 'subMenu',
   initialState,
   reducers: {
@@ -32,5 +32,5 @@ export const subMenuSlice = createSlice({
   },
 });
 
-export const { setOpenSubMenu, closeSubMenus, closeAllSubMenus } = subMenuSlice.actions;
+export const { setOpenSubMenu, closeAllSubMenus } = subMenuSlice.actions;
 export default subMenuSlice.reducer;

@@ -11,7 +11,6 @@ import {
   setSelectedNodeKey,
   ExtendedTreeDataNode
 } from '../../../../reduxStoreAndSlices/notesSlice';
-import type { NodeDragEventParams } from 'rc-tree/lib/contextTypes';
 import { DataNode, EventDataNode } from 'antd/es/tree';
 import { useTranslation } from 'react-i18next';
 
@@ -26,7 +25,8 @@ export const useNotesTree = () => {
   
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const onDrop = useCallback((info: NodeDragEventParams<DataNode> & {
+  const onDrop = useCallback((info: {
+    node: EventDataNode<DataNode>;
     dragNode: EventDataNode<DataNode>;
     dragNodesKeys: React.Key[];
     dropPosition: number;

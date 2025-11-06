@@ -3,7 +3,7 @@ import { Cell, Id } from "@silevis/reactgrid";
 // DataTypes.ts
 export type RowType = "Chart" | "Separator" | "Event";
 
-export interface BaseRow {
+interface BaseRow {
   no: number;
   id: string;
   rowType: RowType;
@@ -135,12 +135,4 @@ export interface MessageInfo {
   severity: 'error' | 'info' | 'warning' | 'success';
 }
 
-export interface ListFilesResponse {
-  files: {
-    [fileId: string]: {
-      title: string;
-      createdAt: string;
-      updatedAt: string;
-    };
-  };
-}
+// Removed unused ListFilesResponse type

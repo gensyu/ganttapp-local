@@ -322,8 +322,6 @@ const notesSlice = createSlice({
 
 export const {
   updateNoteData,
-  addNoteData,
-  deleteNoteData,
   updateTreeNodeTitle,
   addTreeNode,
   removeTreeNode,
@@ -333,12 +331,10 @@ export const {
   setNotes,
   setIsSavedChangesNotes,
   updateNotesModalState,
-  setNotesModalState,
   updateZoomLevel,
   updateTreeExpandedKeys,
   updateTreeScrollPosition,
   updateEditorState,
-  deleteEditorState,
   setSelectedNodeKey
 } = notesSlice.actions;
 

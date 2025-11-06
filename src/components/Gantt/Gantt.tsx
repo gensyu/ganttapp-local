@@ -17,7 +17,6 @@ import { useTranslation } from 'react-i18next';
 import ErrorMessage from '../MessageInfo';
 import { setActiveModal } from '../../reduxStoreAndSlices/uiFlagSlice';
 import CustomRowCountDialogContainer from '../ContextMenu/CustomRowCountDialogContainer';
-import { useLocation } from 'react-router-dom';
 import TopBarLocal from '../Topbar/TopBarLocal';
 
 function Gantt() {
@@ -67,8 +66,6 @@ function Gantt() {
   const renderRowsInterval = 30;
   const visibleRows = useMemo(() => Math.ceil(gridHeight / rowHeight), [gridHeight, rowHeight]);
   const totalRows = useMemo(() => Object.keys(data).length, [data]);
-  const location = useLocation();
-  const isLocalMode = location.pathname.startsWith('/local');
 
   const filteredData = useMemo(() => {
     const result: [string, WBSData][] = [];
@@ -399,7 +396,7 @@ function Gantt() {
     <div style={{ position: 'fixed' }}>
       <div style={{ position: 'relative' }}>
         <div style={{ position: 'absolute', top: '0px', left: '0px', width: '100svw', height: `${topbarHeight}px`, overflow: 'hidden', backgroundColor: '#ececec' }}>
-          {isLocalMode ? <TopBarLocal /> : <TopBarLocal />}
+          <TopBarLocal />
         </div>
         <div style={{ position: 'absolute', top: `${topbarHeight}px`, left: `${wbsWidth}px`, width: `calc(100vw - ${wbsWidth}px)`, height: `calc(100vh - ${topbarHeight}px`, overflow: 'hidden', borderLeft: '1px solid #00000066', scrollBehavior: 'auto' }} ref={calendarRef}>
           <Calendar dateArray={dateArray} />

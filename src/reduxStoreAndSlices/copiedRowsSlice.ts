@@ -23,5 +23,5 @@ const copiedRowsSlice = createSlice({
   },
 });
 
-export const { setCopiedRows, clearCopiedRows } = copiedRowsSlice.actions;
+export const { setCopiedRows } = copiedRowsSlice.actions;
 export default copiedRowsSlice.reducer;

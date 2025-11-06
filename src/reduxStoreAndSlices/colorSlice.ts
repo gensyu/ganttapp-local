@@ -6,7 +6,7 @@ export interface ColorInfo {
   color: string;
 }
 
-export interface ColorState {
+interface ColorState {
   colors: { [id: number]: ColorInfo };
   fallbackColor: string;
   isSavedChanges: boolean;

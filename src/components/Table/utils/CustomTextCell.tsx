@@ -29,7 +29,7 @@ export class CustomTextCellTemplate implements CellTemplate<CustomTextCell> {
     cell: Compatible<CustomTextCell>,
     keyCode: number,
     ctrl: boolean,
-    shift: boolean,
+    _shift: boolean,
     alt: boolean,
     key?: string
   ): { cell: Compatible<CustomTextCell>; enableEditMode: boolean } {

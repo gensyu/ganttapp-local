@@ -39,7 +39,7 @@ export class CustomDateCellTemplate implements CellTemplate<CustomDateCell> {
     cell: Compatible<CustomDateCell>,
     keyCode: number,
     ctrl?: boolean,
-    shift?: boolean,
+    _shift?: boolean,
     alt?: boolean,
     key?: string
   ): { cell: Compatible<CustomDateCell>; enableEditMode: boolean } {

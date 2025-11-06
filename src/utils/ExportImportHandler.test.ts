@@ -40,7 +40,6 @@ const mockStore = configureStore({
 });
 
 describe('ExportImportHandler', () => {
-  const testFileId = 'test-project';
   const testColors: { [id: number]: ColorInfo } = {
     1: { alias: 'Red', color: '#ff0000' }
   };
@@ -83,9 +82,8 @@ describe('ExportImportHandler', () => {
   });
 
   describe('handleExport', () => {
-    it('should create a ZIP file with project data', async () => {
+    it('should create a JSON file as Uint8Array with project data', async () => {
       const result = await handleExport(
-        testFileId,
         testColors,
         testDateRange,
         testColumns,
@@ -104,7 +102,12 @@ describe('ExportImportHandler', () => {
         'ja'
       );
 
-      expect(result).toBeInstanceOf(Blob);
+      expect(result).toBeInstanceOf(Uint8Array);
+      // JSONとしてデコード可能であることを確認
+      const jsonString = new TextDecoder().decode(result);
+      const parsed = JSON.parse(jsonString);
+      expect(parsed).toHaveProperty('colors');
+      expect(parsed).toHaveProperty('title', 'Test Project');
     });
 
     it('should handle export with optional parameters', async () => {
@@ -116,7 +119,6 @@ describe('ExportImportHandler', () => {
       };
 
       const result = await handleExport(
-        testFileId,
         testColors,
         testDateRange,
         testColumns,
@@ -136,7 +138,12 @@ describe('ExportImportHandler', () => {
         notesModalState
       );
 
-      expect(result).toBeInstanceOf(Blob);
+      expect(result).toBeInstanceOf(Uint8Array);
+      // JSONとしてデコード可能で、オプションパラメータが含まれていることを確認
+      const jsonString = new TextDecoder().decode(result);
+      const parsed = JSON.parse(jsonString);
+      expect(parsed).toHaveProperty('notesModalState');
+      expect(parsed.notesModalState).toEqual(notesModalState);
     });
   });
 
@@ -228,7 +235,6 @@ describe('ExportImportHandler', () => {
 
     it('should handle export with all required fields', async () => {
       const result = await handleExport(
-        'business-test',
         { 1: { alias: 'Blue', color: '#blue' } },
         { startDate: '2024-01-01', endDate: '2024-12-31' },
         [{ columnId: 'test', columnName: 'Test', width: 100, resizable: false, visible: true, reorderable: false }],
@@ -267,8 +273,14 @@ describe('ExportImportHandler', () => {
         'en'
       );
 
-      expect(result).toBeInstanceOf(Blob);
-      expect(result.type).toBe('application/zip');
+      expect(result).toBeInstanceOf(Uint8Array);
+      // JSONとしてデコード可能で、すべての必須フィールドが含まれていることを確認
+      const jsonString = new TextDecoder().decode(result);
+      const parsed = JSON.parse(jsonString);
+      expect(parsed).toHaveProperty('title', 'Business Project 2024');
+      expect(parsed).toHaveProperty('colors');
+      expect(parsed).toHaveProperty('data');
+      expect(parsed).toHaveProperty('columns');
     });
 
     it('should import data and dispatch all necessary actions', async () => {
@@ -333,7 +345,6 @@ describe('ExportImportHandler', () => {
     it('should handle undefined optional parameters gracefully', async () => {
       // Test with minimal required parameters
       const result = await handleExport(
-        'minimal-test',
         {},
         { startDate: '2024-01-01', endDate: '2024-01-01' },
         [],
@@ -352,7 +363,11 @@ describe('ExportImportHandler', () => {
         'ja'
       );
 
-      expect(result).toBeInstanceOf(Blob);
+      expect(result).toBeInstanceOf(Uint8Array);
+      // JSONとしてデコード可能であることを確認
+      const jsonString = new TextDecoder().decode(result);
+      const parsed = JSON.parse(jsonString);
+      expect(parsed).toBeDefined();
     });
 
     it('should handle import with missing required fields', async () => {

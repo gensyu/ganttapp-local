@@ -2,7 +2,6 @@ import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, setMessageInfo } from '../reduxStoreAndSlices/store';
 import { handleExport } from '../utils/ExportImportHandler';
-import { v4 as uuidv4 } from 'uuid';
 import { useTranslation } from 'react-i18next';
 
 export const useJsonExport = () => {
@@ -42,8 +41,7 @@ export const useJsonExport = () => {
 
     const exportAndCopyJson = useCallback(async () => {
         try {
-            const zipBlob = await handleExport(
-                uuidv4(),
+            const jsonData = await handleExport(
                 colors,
                 dateRange,
                 columns,
@@ -69,12 +67,8 @@ export const useJsonExport = () => {
                 historySnapshots,
             );
 
-            const JSZip = (await import('jszip')).default;
-            const zip = new JSZip();
-            const loadedZip = await zip.loadAsync(zipBlob);
-            const jsonFileEntry = Object.values(loadedZip.files).find(file => file.name.endsWith('.json'));
-            if (!jsonFileEntry) throw new Error("No JSON file found in ZIP");
-            const jsonString = await jsonFileEntry.async("string");
+            // JSONデータを文字列にデコード
+            const jsonString = new TextDecoder().decode(jsonData);
 
             await navigator.clipboard.writeText(jsonString);
 
